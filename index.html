@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SGI 4.ª — Torre de Control Operacional | 4.ª Compañía de Bomberos Puente Alto</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface-alt: #f8fafc;
+      --primary: #c62828;
+      --primary-dark: #8e0000;
+      --navy: #0f172a;
+      --slate: #475569;
+      --border: #e2e8f0;
+      --success: #15803d;
+      --success-bg: #dcfce7;
+      --warn: #b45309;
+      --warn-bg: #fef3c7;
+      --danger: #b91c1c;
+      --danger-bg: #fee2e2;
+      --info: #1d4ed8;
+      --info-bg: #dbeafe;
+      --radius: 14px;
+      --shadow: 0 4px 18px rgba(15, 23, 42, 0.07);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--navy);
+      line-height: 1.5;
+    }
+
+    /* Top Bar */
+    .topbar {
+      background: linear-gradient(135deg, var(--navy) 0%, #1e293b 100%);
+      color: #fff;
+      padding: 14px 22px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: var(--primary);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: -0.5px;
+      box-shadow: 0 2px 8px rgba(198, 40, 40, 0.45);
+    }
+    .brand h1 { font-size: 1.1rem; font-weight: 700; }
+    .brand p { font-size: 0.78rem; color: #cbd5e1; }
+
+    .controls-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Version Switcher */
+    .version-switch {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 4px;
+      border-radius: 10px;
+      gap: 4px;
+    }
+    .version-btn {
+      border: none;
+      background: transparent;
+      color: #cbd5e1;
+      padding: 7px 13px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .version-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    /* Offline Banner (V2 only) */
+    .offline-pill {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: #fff;
+    }
+    .offline-pill.visible { display: inline-flex; }
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+    .dot.offline { background: #f59e0b; animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .offline-banner {
+      display: none;
+      background: #fef3c7;
+      color: #92400e;
+      border-bottom: 1px solid #fde68a;
+      padding: 8px 22px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      text-align: center;
+    }
+    .offline-banner.show { display: block; }
+
+    /* Push Toast (V2 only) */
+    .toast-area {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 100;
+      max-width: 340px;
+    }
+    .toast {
+      background: var(--navy);
+      color: #fff;
+      padding: 13px 16px;
+      border-radius: 12px;
+      border-left: 5px solid var(--primary);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      font-size: 0.84rem;
+      animation: slideIn 0.25s ease-out;
+    }
+    @keyframes slideIn { from { transform: translateY(15px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* Container & Nav Tabs */
+    .container {
+      max-width: 1220px;
+      margin: 20px auto 60px;
+      padding: 0 18px;
+    }
+
+    .version-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--primary);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--shadow);
+    }
+    .version-summary strong { color: var(--primary); }
+    .version-summary span { font-size: 0.88rem; color: var(--slate); }
+
+    .nav-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 760px) {
+      .nav-tabs { grid-template-columns: repeat(2, 1fr); }
+    }
+    .tab-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+    .tab-btn:hover { border-color: var(--primary); transform: translateY(-1px); }
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 6px 14px rgba(198, 40, 40, 0.28);
+    }
+    .tab-btn .tab-title { font-weight: 700; font-size: 0.94rem; display: block; }
+    .tab-btn .tab-sub { font-size: 0.76rem; opacity: 0.85; }
+
+    /* KPI Row */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 820px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 15px 16px;
+      box-shadow: var(--shadow);
+    }
+    .kpi-label { font-size: 0.78rem; color: var(--slate); font-weight: 600; text-transform: uppercase; }
+    .kpi-val { font-size: 1.6rem; font-weight: 800; margin: 4px 0; color: var(--navy); }
+    .kpi-foot { font-size: 0.78rem; color: var(--success); font-weight: 600; }
+
+    /* Panels */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 18px;
+    }
+    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header h2 { font-size: 1.05rem; font-weight: 700; }
+
+    /* Badges & Buttons */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .b-success { background: var(--success-bg); color: var(--success); }
+    .b-warn { background: var(--warn-bg); color: var(--warn); }
+    .b-danger { background: var(--danger-bg); color: var(--danger); }
+    .b-info { background: var(--info-bg); color: var(--info); }
+
+    .btn {
+      border: none;
+      border-radius: 9px;
+      padding: 9px 14px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-navy { background: var(--navy); color: #fff; }
+    .btn-outline { background: #fff; color: var(--navy); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--surface-alt); }
+    .btn-lg-touch { padding: 12px 16px; font-size: 0.92rem; }
+
+    /* Lists & Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--slate); font-weight: 700; font-size: 0.78rem; text-transform: uppercase; }
+
+    .sub-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .pill {
+      padding: 7px 13px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .pill.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    /* Forms */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--slate); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+
+    /* QR Box */
+    .qr-box {
+      border: 2px dashed #94a3b8;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      background: var(--surface-alt);
+    }
+    .qr-grid {
+      width: 84px;
+      height: 84px;
+      margin: 0 auto 10px;
+      background: repeating-conic-gradient(var(--navy) 0% 25%, #fff 0% 50%) 50% / 14px 14px;
+      border: 4px solid var(--navy);
+      border-radius: 6px;
+    }
+
+    /* V2 exclusive features */
+    .v2-only { display: none; }
+    body.mode-v2 .v2-only { display: block; }
+    body.mode-v2 .v2-only-flex { display: flex; }
+    .v2-only-flex { display: none; }
+    body.mode-v2 .v1-only { display: none; }
+
+    .v2-tag {
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 700;
+      border: 1px solid #fde68a;
+    }
+
+    .semaphore-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .sem-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      font-size: 0.82rem;
+    }
+    .sem-item.crit { border-left: 4px solid var(--danger); background: #fef2f2; }
+    .sem-item.warn { border-left: 4px solid var(--warn); background: #fffbeb; }
+    .sem-item.ok { border-left: 4px solid var(--success); background: #f0fdf4; }
+
+    .voice-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body class="mode-v1">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-badge">4.ª</div>
+      <div>
+        <h1>SGI 4.ª — Plataforma Operacional Cloud</h1>
+        <p>4.ª Compañía de Bomberos de Puente Alto · Prototipo Interactivo Unidad 3</p>
+      </div>
+    </div>
+
+    <div class="controls-right">
+      <button id="offlineToggle" class="offline-pill" onclick="toggleOffline()">
+        <span id="connDot" class="dot"></span>
+        <span id="connText">En línea · Sincronizado</span>
+      </button>
+
+      <div class="version-switch" title="Alternar entre Prototipo Inicial (Semana 11) e Iterado (Semana 12)">
+        <button id="btnV1" class="version-btn active" onclick="setVersion('v1')">V1.0 Inicial (S11)</button>
+        <button id="btnV2" class="version-btn" onclick="setVersion('v2')">V2.0 Iterada (S12)</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="offlineBanner" class="offline-banner">
+    ⚠️ Modo Offline-First activo: los registros del Libro de Novedades y movimientos se guardan localmente en el dispositivo y se sincronizarán automáticamente al recuperar señal.
+  </div>
+
+  <main class="container">
+    <div class="version-summary">
+      <div>
+        <strong id="verTitle">Prototipo V1.0 (Semana 11 — "Torre de Control de Bolsillo"):</strong>
+        <span id="verDesc">Centralización web/móvil de Guardia en Vivo, 4 Inventarios con QR individual, Libro de Novedades y Bandeja de Oficios.</span>
+      </div>
+      <span class="badge b-info" id="verBadge">Ciclo 1 · Pre-iteración</span>
+    </div>
+
+    <!-- KPIs -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Voluntarios Disponibles</div>
+        <div class="kpi-val" id="kpiPersonal">14 / 22</div>
+        <div class="kpi-foot">Guardia en Vivo Cloud</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Trazabilidad 4 Inventarios</div>
+        <div class="kpi-val" id="kpiInv">98.4%</div>
+        <div class="kpi-foot">3 Carros + Bodega Central</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Incidencias Hoy</div>
+        <div class="kpi-val" id="kpiInc">3</div>
+        <div class="kpi-foot">Libro Novedades Digital (100%)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Oficios Pendientes</div>
+        <div class="kpi-val" id="kpiOficios">2</div>
+        <div class="kpi-foot">Comandancia → Compañía</div>
+      </div>
+    </section>
+
+    <!-- Nav Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('personal', this)">
+        <span class="tab-title">1. Guardia en Vivo</span>
+        <span class="tab-sub">Disponibilidad en tiempo real</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('inventario', this)">
+        <span class="tab-title">2. Inventario Cuádruple</span>
+        <span class="tab-sub">3 Carros + Bodega + QR</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('novedades', this)">
+        <span class="tab-title">3. Libro de Novedades</span>
+        <span class="tab-sub">Incidencias y consumibles</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('oficios', this)">
+        <span class="tab-title">4. Oficios y Bajas</span>
+        <span class="tab-sub">Comandancia y auditoría</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: PERSONAL -->
+    <section id="tab-personal" class="panel active">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2>👥 Dotación y Disponibilidad en Tiempo Real</h2>
+            <span class="badge b-success">Actualizado en la nube</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Voluntario</th>
+                <th>Cargo / Especialidad</th>
+                <th>Estado</th>
+                <th>Acción Rápida</th>
+              </tr>
+            </thead>
+            <tbody id="personalBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>📟 Mi Estado de Guardia</h2>
+          </div>
+          <p style="font-size:0.86rem;color:var(--slate);margin-bottom:14px;">
+            Cada voluntario actualiza su disponibilidad con un toque desde su celular o PC del cuartel.
+          </p>
+          <div style="display:grid;gap:10px;">
+            <button class="btn btn-lg-touch" style="background:#15803d;color:#fff;" onclick="setMyStatus('Disponible')">✅ Marcarme DISPONIBLE</button>
+            <button class="btn btn-lg-touch" style="background:#b45309;color:#fff;" onclick="setMyStatus('En Emergencia')">🚒 Marcarme EN EMERGENCIA</button>
+            <button class="btn btn-lg-touch btn-outline" onclick="setMyStatus('No Disponible')">⛔ Marcarme NO DISPONIBLE</button>
+          </div>
+          <div id="myStatusMsg" style="margin-top:14px;font-size:0.84rem;color:var(--navy);font-weight:600;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: INVENTARIO -->
+    <section id="tab-inventario" class="panel">
+      <div class="v2-only card">
+        <div class="card-header">
+          <h2>🚦 Semáforo de Stock Crítico en Bodega <span class="v2-tag">Mejora V2.0 (Post-CDM)</span></h2>
+          <button class="btn btn-outline" onclick="showToast('Alerta enviada al Capitán: Stock crítico de Guantes Nitrilo L')">🔔 Notificar Reposición</button>
+        </div>
+        <div class="semaphore-bar">
+          <div class="sem-item crit"><strong>Guantes Nitrilo L:</strong> 8 pares (Crítico &lt; 15)</div>
+          <div class="sem-item warn"><strong>Mascarillas P100:</strong> 14 unid. (Alerta &lt; 20)</div>
+          <div class="sem-item ok"><strong>Espuma AFFF Bidón:</strong> 12 bidones (Óptimo)</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2>📦 Inventario Segmentado (4 Ubicaciones)</h2>
+            <div class="v2-only-flex" style="gap:8px;">
+              <button class="btn btn-primary" onclick="checklistGaveta()">⚡ Checklist Rápido por Gaveta</button>
+            </div>
+          </div>
+
+          <div class="sub-pills" id="invPills">
+            <button class="pill active" onclick="filterInv('Carro Bomba B-4', this)">🚒 Carro Bomba B-4</button>
+            <button class="pill" onclick="filterInv('Carro Soporte S-4', this)">🛠️ Carro Soporte S-4</button>
+            <button class="pill" onclick="filterInv('Carro Químico H-4', this)">☣️ Carro Químico H-4</button>
+            <button class="pill" onclick="filterInv('Bodega Central', this)">🏭 Bodega Central</button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Código / Ítem</th>
+                <th>Estado</th>
+                <th>Responsable</th>
+                <th>Mover / Estado</th>
+              </tr>
+            </thead>
+            <tbody id="invBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>📷 Escáner QR de Carro / Herramienta</h2>
+          </div>
+          <div class="qr-box">
+            <div class="qr-grid"></div>
+            <p style="font-size:0.84rem;font-weight:700;" id="qrLabel">QR-B4-AXE104 · Hacha de Bombero</p>
+            <p style="font-size:0.78rem;color:var(--slate);margin:6px 0 12px;" id="qrSub">
+              Ubicación: Carro Bomba B-4 · Gaveta Izquierda 2
+            </p>
+            <button class="btn btn-navy" onclick="simularQR()">📲 Simular Escaneo QR</button>
+          </div>
+          <p class="v1-only" style="font-size:0.8rem;color:var(--slate);margin-top:12px;">
+            * En V1.0 el escaneo es individual ítem por ítem.
+          </p>
+          <p class="v2-only" style="font-size:0.8rem;color:var(--success);margin-top:12px;font-weight:600;">
+            ✓ V2.0 incluye QR maestro por gaveta/compartimento para revisión con guantes en &lt; 20 segundos.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: LIBRO DE NOVEDADES -->
+    <section id="tab-novedades" class="panel">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2>🚒 Registrar Incidencia en Libro Digital</h2>
+            <span class="badge b-info">~3 incidencias/día</span>
+          </div>
+
+          <div class="voice-box v2-only-flex">
+            <div>
+              <strong style="font-size:0.85rem;">🎙️ Dictado Rápido Manos Libres <span class="v2-tag">Mejora V2.0</span></strong>
+              <p style="font-size:0.76rem;color:var(--slate);">Autocompleta el parte al regresar de la emergencia.</p>
+            </div>
+            <button class="btn btn-primary" onclick="simularVoz()">🎙️ Dictar Parte</button>
+          </div>
+
+          <form onsubmit="guardarIncidencia(event)">
+            <div class="form-group">
+              <label>Clave / Tipo de Emergencia</label>
+              <select id="incTipo">
+                <option>10-0 · Incendio Estructural</option>
+                <option>10-4 · Rescate Vehicular</option>
+                <option>10-5 · Incidente Materiales Peligrosos (HazMat)</option>
+                <option>10-2 · Pastizales / Forestal</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Unidad / Carro Despachado</label>
+              <select id="incCarro">
+                <option>Carro Bomba B-4</option>
+                <option>Carro Soporte S-4</option>
+                <option>Carro Químico H-4</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Consumible Descontado de Bodega</label>
+              <select id="incInsumo">
+                <option>Guantes Nitrilo L (-4 pares)</option>
+                <option>Mascarillas P100 (-2 unid.)</option>
+                <option>Espuma AFFF (-1 bidón)</option>
+                <option>Sin consumo de bodega</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Descripción Operativa y Personal Participante</label>
+              <textarea id="incDesc" rows="3" placeholder="Ej: Despacho B-4 con 6 voluntarios a Av. Concha y Toro..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg-touch" style="width:100%;justify-content:center;">
+              💾 Guardar en Libro de Novedades Digital
+            </button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>📖 Historial Trazable de Novedades</h2>
+          </div>
+          <div id="novedadesList" style="display:grid;gap:10px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: OFICIOS Y BAJAS -->
+    <section id="tab-oficios" class="panel">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h2>📄 Bandeja Centralizada de Oficios (Comandancia)</h2>
+            <button class="btn btn-outline v2-only" onclick="showToast('🚨 Nuevo Oficio N.° 148-C recibido desde Comandancia (PDF adjunto)')">🔔 Probar Alerta Push</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>N.° Oficio</th>
+                <th>Asunto / Solicitud</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="oficiosBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>🔍 Registro Auditado de Baja de Equipo</h2>
+          </div>
+          <p style="font-size:0.83rem;color:var(--slate);margin-bottom:12px;">
+            Regla de auditoría: toda baja requiere seleccionar el <strong>Oficio de respaldo de Comandancia</strong> y registra automáticamente al responsable.
+          </p>
+          <form onsubmit="registrarBaja(event)">
+            <div class="form-group">
+              <label>Elemento a dar de baja</label>
+              <select id="bajaItem">
+                <option>AXE-104 · Hacha Pickhead (Carro Bomba B-4)</option>
+                <option>MNG-208 · Tira 70mm (Carro Bomba B-4)</option>
+                <option>DET-301 · Detector Multigas (Carro Químico H-4)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Oficio de Comandancia (Obligatorio)</label>
+              <select id="bajaOficio">
+                <option>OF-142/2026 · Autorización Baja Material Mayor/Menor</option>
+                <option>OF-145/2026 · Reposición Equipos HazMat</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Motivo Técnico</label>
+              <input id="bajaMotivo" type="text" required placeholder="Ej: Fractura de mango en incendio estructural" />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+              📑 Confirmar Baja Trazable
+            </button>
+          </form>
+          <div id="bajaResult" style="margin-top:12px;font-size:0.83rem;font-weight:600;color:var(--success);"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast-area" id="toastArea"></div>
+
+  <script>
+    let currentVersion = 'v1';
+    let isOffline = false;
+    let currentLoc = 'Carro Bomba B-4';
+    let pendingSync = 0;
+
+    const personal = [
+      { nombre: 'Cap. R. Morales', rol: 'Capitán / Encargado Inventario', estado: 'Disponible' },
+      { nombre: 'Tte. 1° C. Silva', rol: 'Oficial de Guardia', estado: 'Disponible' },
+      { nombre: 'B. Martínez', rol: 'Voluntario Operativo', estado: 'Disponible' },
+      { nombre: 'P. Amion', rol: 'Voluntario HazMat', estado: 'En Emergencia' },
+      { nombre: 'M. Contreras', rol: 'Maquinista B-4', estado: 'Disponible' },
+      { nombre: 'J. Rojas', rol: 'Voluntario Soporte', estado: 'No Disponible' }
+    ];
+
+    const inventario = [
+      { id: 'AXE-104', nombre: 'Hacha Pickhead', loc: 'Carro Bomba B-4', estado: 'En Servicio', resp: 'Cap. R. Morales' },
+      { id: 'MNG-208', nombre: 'Tira 70mm Kevlar', loc: 'Carro Bomba B-4', estado: 'En Servicio', resp: 'Tte. C. Silva' },
+      { id: 'ERA-012', nombre: 'Equipo ERA SCBA', loc: 'Carro Bomba B-4', estado: 'En Mantención', resp: 'B. Martínez' },
+      { id: 'GEN-04', nombre: 'Generador Eléctrico 5kVA', loc: 'Carro Soporte S-4', estado: 'En Servicio', resp: 'M. Contreras' },
+      { id: 'COR-09', nombre: 'Cizalla Hidráulica', loc: 'Carro Soporte S-4', estado: 'En Servicio', resp: 'J. Rojas' },
+      { id: 'DET-301', nombre: 'Detector Multigas 4-en-1', loc: 'Carro Químico H-4', estado: 'En Servicio', resp: 'P. Amion' },
+      { id: 'TRJ-H2', nombre: 'Traje Nivel A Encapsulado', loc: 'Carro Químico H-4', estado: 'En Servicio', resp: 'P. Amion' },
+      { id: 'GNT-L', nombre: 'Guantes Nitrilo L (8 pares)', loc: 'Bodega Central', estado: 'Stock Crítico', resp: 'Cap. R. Morales' },
+      { id: 'MSC-P100', nombre: 'Mascarillas P100 (14 unid.)', loc: 'Bodega Central', estado: 'En Servicio', resp: 'Cap. R. Morales' }
+    ];
+
+    const novedades = [
+      { hora: '08:40', tipo: '10-0 · Incendio Estructural', carro: 'Carro Bomba B-4', desc: 'Amago en local comercial Av. Gabriela. 8 voluntarios. -4 pares Guantes Nitrilo.', sync: 'Sincronizado' },
+      { hora: '13:15', tipo: '10-4 · Rescate Vehicular', carro: 'Carro Soporte S-4', desc: 'Colisión menor Acceso Sur. Estabilización sin lesionados graves.', sync: 'Sincronizado' },
+      { hora: '18:05', tipo: '10-5 · Fuga de Gas', carro: 'Carro Químico H-4', desc: 'Medición perimetral con DET-301 en Bajos de Mena. Sin consumo extra.', sync: 'Sincronizado' }
+    ];
+
+    const oficios = [
+      { num: 'OF-142/2026', asunto: 'Autorización baja de material menor Q1', estado: 'En Gestión' },
+      { num: 'OF-145/2026', asunto: 'Inventario trimestral Carro Químico H-4', estado: 'Pendiente' },
+      { num: 'OF-139/2026', asunto: 'Nómina guardia nocturna fin de semana', estado: 'Cerrado' }
+    ];
+
+    function setVersion(v) {
+      currentVersion = v;
+      document.body.className = v === 'v2' ? 'mode-v2' : 'mode-v1';
+      document.getElementById('btnV1').classList.toggle('active', v === 'v1');
+      document.getElementById('btnV2').classList.toggle('active', v === 'v2');
+      document.getElementById('offlineToggle').classList.toggle('visible', v === 'v2');
+
+      if (v === 'v1') {
+        isOffline = false;
+        updateOfflineUI();
+        document.getElementById('verTitle').textContent = 'Prototipo V1.0 (Semana 11 — "Torre de Control de Bolsillo"):';
+        document.getElementById('verDesc').textContent = 'Centralización web/móvil de Guardia en Vivo, 4 Inventarios con QR individual, Libro de Novedades y Bandeja de Oficios.';
+        document.getElementById('verBadge').textContent = 'Ciclo 1 · Pre-iteración';
+      } else {
+        document.getElementById('verTitle').textContent = 'Prototipo V2.0 Iterado (Semana 12 — "Torre de Control Todo-Terreno"):';
+        document.getElementById('verDesc').textContent = 'Incorpora Modo Offline-First, Dictado por Voz, Checklist rápido por gaveta, Semáforo de Stock y Alertas Push de Oficios.';
+        document.getElementById('verBadge').textContent = 'Ciclo 2 · Post-CDM';
+        showToast('✅ Modo V2.0 Iterado activado: Offline-First, Voz y Alertas Push listos.');
+      }
+      renderAll();
+    }
+
+    function toggleOffline() {
+      isOffline = !isOffline;
+      updateOfflineUI();
+      if (!isOffline && pendingSync > 0) {
+        novedades.forEach(n => n.sync = 'Sincronizado');
+        showToast(`☁️ Señal recuperada: ${pendingSync} registro(s) sincronizado(s) con la nube.`);
+        pendingSync = 0;
+        renderNovedades();
+      }
+    }
+
+    function updateOfflineUI() {
+      const dot = document.getElementById('connDot');
+      const txt = document.getElementById('connText');
+      const banner = document.getElementById('offlineBanner');
+      dot.classList.toggle('offline', isOffline);
+      banner.classList.toggle('show', isOffline);
+      txt.textContent = isOffline ? 'Sin señal · Modo Offline' : 'En línea · Sincronizado';
+    }
+
+    function switchTab(id, btn) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    function badgeFor(st) {
+      if (st === 'Disponible' || st === 'En Servicio' || st === 'Cerrado') return 'b-success';
+      if (st === 'En Emergencia' || st === 'En Mantención' || st === 'En Gestión') return 'b-warn';
+      return 'b-danger';
+    }
+
+    function renderPersonal() {
+      const tb = document.getElementById('personalBody');
+      tb.innerHTML = personal.map((p, idx) => `
+        <tr>
+          <td><strong>${p.nombre}</strong></td>
+          <td>${p.rol}</td>
+          <td><span class="badge ${badgeFor(p.estado)}">${p.estado}</span></td>
+          <td><button class="btn btn-outline" onclick="cyclePersonal(${idx})">Cambiar</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function cyclePersonal(idx) {
+      const order = ['Disponible', 'En Emergencia', 'No Disponible'];
+      const cur = order.indexOf(personal[idx].estado);
+      personal[idx].estado = order[(cur + 1) % order.length];
+      renderPersonal();
+    }
+
+    function setMyStatus(st) {
+      personal[2].estado = st;
+      document.getElementById('myStatusMsg').textContent = `✓ Estado de B. Martínez actualizado a: ${st}`;
+      renderPersonal();
+    }
+
+    function filterInv(loc, btn) {
+      currentLoc = loc;
+      document.querySelectorAll('#invPills .pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      renderInv();
+    }
+
+    function renderInv() {
+      const tb = document.getElementById('invBody');
+      const items = inventario.filter(i => i.loc === currentLoc);
+      tb.innerHTML = items.map(i => `
+        <tr>
+          <td><strong>${i.id}</strong> · ${i.nombre}</td>
+          <td><span class="badge ${badgeFor(i.estado)}">${i.estado}</span></td>
+          <td>${i.resp}</td>
+          <td><button class="btn btn-outline" onclick="selectQR('${i.id}', '${i.nombre}', '${i.loc}')">Ver QR</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function selectQR(id, nombre, loc) {
+      document.getElementById('qrLabel').textContent = `QR-${id} · ${nombre}`;
+      document.getElementById('qrSub').textContent = `Ubicación actual: ${loc} · Trazabilidad activa`;
+    }
+
+    function simularQR() {
+      showToast('📷 Lectura QR exitosa: Ítem verificado en Carro Bomba B-4 por B. Martínez.');
+    }
+
+    function checklistGaveta() {
+      showToast(`⚡ Checklist completo de "${currentLoc}" validado en 14 segundos (100% operativo).`);
+    }
+
+    function simularVoz() {
+      document.getElementById('incDesc').value = 'Despacho unidad B-4 con 7 voluntarios a emergencia eléctrica. Material revisado en escena, sin bajas ni daños. Se descuentan 4 pares de guantes de nitrilo.';
+      showToast('🎙️ Dictado por voz transcrito al Libro de Novedades.');
+    }
+
+    function guardarIncidencia(e) {
+      e.preventDefault();
+      const tipo = document.getElementById('incTipo').value;
+      const carro = document.getElementById('incCarro').value;
+      const insumo = document.getElementById('incInsumo').value;
+      const desc = document.getElementById('incDesc').value.trim() || 'Incidencia registrada desde cuartel.';
+      const now = new Date();
+      const hora = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      const syncState = (currentVersion === 'v2' && isOffline) ? 'Pendiente (Local)' : 'Sincronizado';
+      if (syncState !== 'Sincronizado') pendingSync++;
+
+      novedades.unshift({ hora, tipo, carro, desc: `${desc} [${insumo}]`, sync: syncState });
+      document.getElementById('incDesc').value = '';
+      document.getElementById('kpiInc').textContent = novedades.length;
+      renderNovedades();
+      showToast(syncState === 'Sincronizado' ? '✅ Incidencia guardada y stock descontado.' : '💾 Guardado en almacenamiento local (Offline-First).');
+    }
+
+    function renderNovedades() {
+      const box = document.getElementById('novedadesList');
+      box.innerHTML = novedades.map(n => `
+        <div style="border:1px solid var(--border);border-radius:10px;padding:11px 13px;background:var(--surface-alt);">
+          <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;">
+            <strong>${n.hora} hrs · ${n.tipo}</strong>
+            <span class="badge ${n.sync === 'Sincronizado' ? 'b-success' : 'b-warn'}">${n.sync}</span>
+          </div>
+          <div style="font-size:0.82rem;color:var(--slate);">${n.carro} — ${n.desc}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderOficios() {
+      const tb = document.getElementById('oficiosBody');
+      tb.innerHTML = oficios.map((o, idx) => `
+        <tr>
+          <td><strong>${o.num}</strong></td>
+          <td>${o.asunto}</td>
+          <td><span class="badge ${badgeFor(o.estado)}">${o.estado}</span></td>
+          <td><button class="btn btn-outline" onclick="avanzarOficio(${idx})">Avanzar</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function avanzarOficio(idx) {
+      const seq = ['Pendiente', 'En Gestión', 'Cerrado'];
+      const cur = seq.indexOf(oficios[idx].estado);
+      oficios[idx].estado = seq[(cur + 1) % seq.length];
+      document.getElementById('kpiOficios').textContent = oficios.filter(o => o.estado !== 'Cerrado').length;
+      renderOficios();
+    }
+
+    function registrarBaja(e) {
+      e.preventDefault();
+      const item = document.getElementById('bajaItem').value;
+      const oficio = document.getElementById('bajaOficio').value;
+      const motivo = document.getElementById('bajaMotivo').value;
+      document.getElementById('bajaResult').textContent = `✓ Baja auditada: ${item} vinculada a ${oficio}. Motivo: "${motivo}". Responsable: Cap. R. Morales.`;
+      document.getElementById('bajaMotivo').value = '';
+      showToast('📑 Baja registrada con vínculo legal a Oficio de Comandancia.');
+    }
+
+    function showToast(msg) {
+      const area = document.getElementById('toastArea');
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = msg;
+      area.appendChild(el);
+      setTimeout(() => el.remove(), 3800);
+    }
+
+    function renderAll() {
+      renderPersonal();
+      renderInv();
+      renderNovedades();
+      renderOficios();
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
